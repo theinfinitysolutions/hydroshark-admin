@@ -1,10 +1,13 @@
 'use client';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { MdDelete, MdAdd, MdLocalOffer } from 'react-icons/md';
 import { IoColorPaletteOutline } from 'react-icons/io5';
 import { TbRulerMeasure } from 'react-icons/tb';
 import { BsBox } from 'react-icons/bs';
+import { MdEdit, MdSave } from 'react-icons/md';
+import instance from '@/utils/instance';
+import useStore from '@/utils/store';
 
 const defaultSectionValues = {
   section_title: '',
@@ -22,10 +25,16 @@ const labelClass = 'text-black text-sm font-medium';
 const inputClass =
   'border border-black/20 rounded-lg p-2 text-black focus:outline-none focus:border-black transition-colors';
 
-const ProductSectionsTab = ({ productSections, setProductSections, setActiveTab }) => {
+const ProductSectionsTab = ({ productSections, setProductSections, setActiveTab, deleteSection, linkedProduct }) => {
   const [colors, setColors] = useState([]);
   const [newColor, setNewColor] = useState({ color_name: '', color_code: '#000000', in_stock: true });
-
+  const [editingSection, setEditingSection] = useState(null);
+  const [selectedSection, setSelectedSection] = useState(null);
+  const [mode, setMode] = useState('create');
+  const [availableColors, setAvailableColors] = useState([]);
+  const [selectedColor, setSelectedColor] = useState('');
+  const [loading, setLoading] = useState(false);
+  const { setShowCreateMerchandiseModal, showCreateMerchandiseModal } = useStore();
   const {
     register,
     handleSubmit,
@@ -45,7 +54,55 @@ const ProductSectionsTab = ({ productSections, setProductSections, setActiveTab 
     return (price - discount).toFixed(2);
   };
 
-  const onAddSection = (data) => {
+  const handleEditSection = (section) => {
+    setEditingSection(section);
+    setSelectedSection(section.id);
+    setMode('edit');
+    reset(section);
+  };
+
+  const onUpdateSection = async (data) => {
+    if (!editingSection) return;
+
+    const discountedAmount = calculateDiscountedAmount(data.price, data.discount_percentage);
+    const updatedSection = {
+      ...data,
+      id: editingSection.id,
+      colors: colors.length > 0 ? colors.map((color) => color.id) : editingSection.colors,
+      discounted_amount: discountedAmount,
+    };
+
+    const url =
+      mode === 'create' ? '/merchandise/merchandise-section/' : `/merchandise/merchandise-section/${selectedSection}/`;
+    const method = mode === 'create' ? 'POST' : 'PATCH';
+
+    try {
+      await instance({
+        method,
+        url,
+        data: {
+          ...updatedSection,
+        },
+      });
+
+      setProductSections(
+        productSections.map((section) => (section.id === editingSection.id ? updatedSection : section))
+      );
+
+      setEditingSection(null);
+      setSelectedSection(null);
+      setColors([]);
+      reset(defaultSectionValues);
+      setShowCreateMerchandiseModal({
+        ...showCreateMerchandiseModal,
+        refresh: !showCreateMerchandiseModal.refresh,
+      });
+    } catch (error) {
+      console.error('Error updating section:', error);
+    }
+  };
+
+  const onAddSection = async (data) => {
     if (colors.length === 0) {
       alert('Please add at least one color variant');
       return;
@@ -55,30 +112,66 @@ const ProductSectionsTab = ({ productSections, setProductSections, setActiveTab 
     const newSection = {
       ...data,
       id: Date.now(),
-      colors: [...colors],
+      colors: colors.map((color) => color.id),
       discounted_amount: discountedAmount,
     };
-    setProductSections([...productSections, newSection]);
-    setColors([]);
-    reset(defaultSectionValues);
+
+    const url =
+      mode === 'create' ? '/merchandise/merchandise-section/' : `/merchandise/merchandise-section/${selectedSection}/`;
+    const method = mode === 'create' ? 'POST' : 'PATCH';
+
+    try {
+      await instance({
+        method,
+        url,
+        data: {
+          ...newSection,
+          linked_product: linkedProduct.id,
+        },
+      });
+      setProductSections([...productSections, newSection]);
+      setColors([]);
+      reset(defaultSectionValues);
+    } catch (error) {
+      console.error('Error adding section:', error);
+    }
   };
 
+  // Fetch available colors on component mount
+  useEffect(() => {
+    const fetchColors = async () => {
+      setLoading(true);
+      try {
+        const response = await instance.get('/merchandise/merchandise-color/');
+        setAvailableColors(response.data.results);
+      } catch (error) {
+        console.error('Error fetching colors:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchColors();
+  }, []);
+
+  // Modified addColor function
   const addColor = () => {
-    if (!newColor.color_name.trim()) return;
-    if (colors.some((c) => c.color_name === newColor.color_name)) {
-      alert('Color name must be unique');
+    if (!selectedColor) return;
+
+    const colorToAdd = availableColors.find((c) => c.id === parseInt(selectedColor));
+    if (!colorToAdd) return;
+
+    if (colors.some((c) => c.id === colorToAdd.id)) {
+      alert('This color has already been added');
       return;
     }
-    setColors([...colors, { ...newColor, id: Date.now() }]);
-    setNewColor({ color_name: '', color_code: '#000000', in_stock: true });
+
+    setColors([...colors, colorToAdd]);
+    setSelectedColor('');
   };
 
   const removeColor = (colorId) => {
     setColors(colors.filter((color) => color.id !== colorId));
-  };
-
-  const removeSection = (id) => {
-    setProductSections(productSections.filter((section) => section.id !== id));
   };
 
   return (
@@ -90,7 +183,7 @@ const ProductSectionsTab = ({ productSections, setProductSections, setActiveTab 
           Create Merchandise Section
         </h3>
 
-        <form onSubmit={handleSubmit(onAddSection)} className='space-y-8'>
+        <form onSubmit={handleSubmit(mode === 'create' ? onAddSection : onUpdateSection)} className='space-y-8'>
           {/* Basic Information */}
           <div className='grid grid-cols-2 gap-6'>
             <div className='col-span-2'>
@@ -226,27 +319,25 @@ const ProductSectionsTab = ({ productSections, setProductSections, setActiveTab 
 
               <div className='flex gap-4 items-end'>
                 <div className='flex-1'>
-                  <label className={labelClass}>Color Name</label>
-                  <input
-                    placeholder='e.g., Navy Blue'
-                    value={newColor.color_name}
-                    onChange={(e) => setNewColor({ ...newColor, color_name: e.target.value })}
+                  <label className={labelClass}>Select Color</label>
+                  <select
+                    value={selectedColor}
+                    onChange={(e) => setSelectedColor(e.target.value)}
                     className={inputClass + ' w-full mt-1'}
-                  />
-                </div>
-                <div>
-                  <label className={labelClass}>Color</label>
-                  <input
-                    type='color'
-                    value={newColor.color_code}
-                    onChange={(e) => setNewColor({ ...newColor, color_code: e.target.value })}
-                    className={inputClass + ' w-20 h-10 mt-1'}
-                  />
+                  >
+                    <option value=''>Choose a color</option>
+                    {availableColors.map((color) => (
+                      <option key={color.id} value={color.id}>
+                        {color.color_name}
+                      </option>
+                    ))}
+                  </select>
                 </div>
                 <button
                   type='button'
                   onClick={addColor}
                   className='bg-black text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-black/80 transition-colors'
+                  disabled={!selectedColor}
                 >
                   <MdAdd />
                   Add Color
@@ -261,7 +352,10 @@ const ProductSectionsTab = ({ productSections, setProductSections, setActiveTab 
                         className='w-10 h-10 rounded-lg border shadow-inner'
                         style={{ backgroundColor: color.color_code }}
                       />
-                      <p className='font-medium text-black'>{color.color_name}</p>
+                      <div>
+                        <p className='font-medium text-black'>{color.color_name}</p>
+                        <p className='text-xs text-gray-500'>{color.color_code}</p>
+                      </div>
                     </div>
                     <button
                       type='button'
@@ -278,13 +372,23 @@ const ProductSectionsTab = ({ productSections, setProductSections, setActiveTab 
           </div>
 
           <div className='flex justify-end pt-4'>
-            <button
-              type='submit'
-              className='bg-black text-white px-6 py-2 rounded-lg flex items-center gap-2 hover:bg-black/80 transition-colors'
-            >
-              <MdAdd className='text-xl' />
-              Add Section
-            </button>
+            {mode === 'create' ? (
+              <button
+                type='submit'
+                className='bg-black text-white px-6 py-2 rounded-lg flex items-center gap-2 hover:bg-black/80 transition-colors'
+              >
+                <MdAdd className='text-xl' />
+                Add Section
+              </button>
+            ) : (
+              <button
+                type='submit'
+                className='bg-black text-white px-6 py-2 rounded-lg flex items-center gap-2 hover:bg-black/80 transition-colors'
+              >
+                <MdSave className='text-xl' />
+                Save Section
+              </button>
+            )}
           </div>
         </form>
       </div>
@@ -305,12 +409,21 @@ const ProductSectionsTab = ({ productSections, setProductSections, setActiveTab 
                   </span>
                 </div>
               </div>
-              <button
-                onClick={() => removeSection(section.id)}
-                className='text-red-500 hover:bg-red-50 p-2 rounded-full transition-colors'
-              >
-                <MdDelete className='text-xl' />
-              </button>
+
+              <div className='flex items-center gap-2'>
+                <button
+                  onClick={() => handleEditSection(section)}
+                  className='text-blue-500 hover:bg-blue-50 p-2 rounded-full transition-colors'
+                >
+                  <MdEdit className='text-xl' />
+                </button>
+                <button
+                  onClick={() => deleteSection(section.id)}
+                  className='text-red-500 hover:bg-red-50 p-2 rounded-full transition-colors'
+                >
+                  <MdDelete className='text-xl' />
+                </button>
+              </div>
             </div>
 
             <div className='grid grid-cols-2 gap-4 mb-6'>
@@ -327,7 +440,7 @@ const ProductSectionsTab = ({ productSections, setProductSections, setActiveTab 
               </div>
               <div className='bg-gray-50 p-3 rounded-lg'>
                 <p className='text-sm text-gray-600'>Chest</p>
-                <p className='font-medium mt-1 text-black'>{section.chest_measurement}"</p>
+                <p className='font-medium mt-1 text-black'>{`${section.chest_measurement}"`}</p>
               </div>
               <div className='bg-gray-50 p-3 rounded-lg'>
                 <p className='text-sm text-gray-600'>Weight</p>
@@ -342,9 +455,9 @@ const ProductSectionsTab = ({ productSections, setProductSections, setActiveTab 
                   <div key={color.id} className='flex items-center gap-2 bg-gray-50 px-3 py-1.5 rounded-lg border'>
                     <div
                       className='w-4 h-4 rounded-md border shadow-inner'
-                      style={{ backgroundColor: color.color_code }}
+                      style={{ backgroundColor: color.product_color.color_code }}
                     />
-                    <span className='text-sm font-medium text-black'>{color.color_name}</span>
+                    <span className='text-sm font-medium text-black'>{color?.product_color?.color_name}</span>
                   </div>
                 ))}
               </div>

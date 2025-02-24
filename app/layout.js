@@ -9,14 +9,14 @@ const inter = Inter({ subsets: ['latin'] });
 export default function RootLayout({ children }) {
   const router = useRouter();
 
-  // useEffect(() => {
-  //   console.log("RootLayout");
-  //   const token = localStorage.getItem("token");
+  useEffect(() => {
+    console.log('RootLayout');
+    const token = localStorage.getItem('token');
 
-  //   if (!token) {
-  //     router.push("/login");
-  //   }
-  // }, []);
+    if (!token) {
+      router.push('/login');
+    }
+  }, []);
 
   return (
     <html lang='en'>

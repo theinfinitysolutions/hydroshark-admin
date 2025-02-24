@@ -4,40 +4,29 @@ import useStore from '@/utils/store';
 import { MdEdit } from 'react-icons/md';
 import { GoInbox } from 'react-icons/go';
 import Spinner from '@/components/Spinner';
+import instance from '@/utils/instance';
+import ConfirmDeleteModal from '@/components/Modals/ConfirmDeleteModal';
 
 const MerchandiseDataTable = () => {
   const [loading, setLoading] = useState(false);
-  const [merchandise, setMerchandise] = useState([
-    {
-      id: 1,
-      product_title: 'HydroShark T-Shirt',
-      slug: 'hydroshark-t-shirt',
-      sku: 'HS-TS-001',
-      product_description: 'Premium quality HydroShark branded t-shirt',
-      mrp: 39.99,
-      selling_price: 29.99,
-      discount: 25.0,
-      rating: 4.5,
-      weight: '0.3kg',
-      hydroshark_points_accepted: true,
-      image_url: 'https://placehold.co/100x100',
-    },
-    {
-      id: 2,
-      product_title: 'HydroShark Hoodie',
-      slug: 'hydroshark-hoodie',
-      sku: 'HS-HD-001',
-      product_description: 'Comfortable HydroShark branded hoodie',
-      mrp: 59.99,
-      selling_price: 49.99,
-      discount: 16.67,
-      rating: 4.8,
-      weight: '0.5kg',
-      hydroshark_points_accepted: true,
-      image_url: 'https://placehold.co/100x100',
-    },
-  ]);
+  const [merchandise, setMerchandise] = useState([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [deleteMerchandiseModal, setDeleteMerchandiseModal] = useState({});
   const { showCreateMerchandiseModal, setShowCreateMerchandiseModal } = useStore();
+
+  const getMerchandise = async () => {
+    try {
+      const res = await instance.get('/merchandise/merchandise/');
+      console.log('Merchandise data:', res.data);
+      setMerchandise(res.data.results);
+    } catch (error) {
+      console.error('Error fetching merchandise:', error);
+    }
+  };
+
+  useEffect(() => {
+    getMerchandise();
+  }, [showCreateMerchandiseModal?.refresh]);
 
   if (loading) {
     return (
@@ -48,6 +37,18 @@ const MerchandiseDataTable = () => {
     );
   }
 
+  const handleDelete = (id) => {
+    instance
+      .delete(`/merchandise/merchandise/${id}/`)
+      .then((response) => {
+        console.log('Merchandise deleted successfully:', response.data);
+        getMerchandise(); // Refresh the merchandise list
+      })
+      .catch((error) => {
+        console.error('Error deleting merchandise:', error);
+      });
+  };
+
   return (
     <div className='w-full'>
       {merchandise.length > 0 ? (
@@ -56,7 +57,17 @@ const MerchandiseDataTable = () => {
             {merchandise.map((item) => (
               <div key={item.id} className='flex flex-row justify-between items-center p-4 bg-white rounded-lg shadow'>
                 <div className='flex flex-row gap-4 items-center'>
-                  <img src={item.image_url} alt={item.product_title} className='w-20 h-20 rounded-md object-cover' />
+                  {item.product_primary_image ? (
+                    <img
+                      src={item.product_primary_image?.image?.cloudfront}
+                      alt={item.product_title}
+                      className='w-20 h-20 rounded-md object-cover'
+                    />
+                  ) : (
+                    <div className='w-20 h-20 rounded-md bg-gray-200 flex items-center justify-center'>
+                      <p className='text-sm text-gray-500'>No Image</p>
+                    </div>
+                  )}
                   <div className='flex flex-col'>
                     <div className='flex flex-row items-center gap-2'>
                       <p className='text-xl text-black'>{item.product_title}</p>
@@ -66,13 +77,6 @@ const MerchandiseDataTable = () => {
                   </div>
                 </div>
                 <div className='flex flex-row items-center gap-x-4'>
-                  <div className='flex flex-col items-end'>
-                    {item.hydroshark_points_accepted && (
-                      <span className='text-sm bg-blue-100 text-blue-800 px-2 py-1 rounded-full'>
-                        HydroShark Coins Accepted
-                      </span>
-                    )}
-                  </div>
                   <button
                     onClick={() => {
                       setShowCreateMerchandiseModal({
@@ -86,6 +90,13 @@ const MerchandiseDataTable = () => {
                   >
                     <MdEdit className='text-xl' />
                   </button>
+                  <ConfirmDeleteModal
+                    id={item.id}
+                    title={'Merchandise'}
+                    onConfirm={() => {
+                      handleDelete(item.id);
+                    }}
+                  />
                 </div>
               </div>
             ))}
