@@ -33,7 +33,7 @@ const defaultValues = {
   product_description: '',
   discount: '',
   weight: '',
-  merchandise_category: '',
+  category: '',
 };
 
 const defaultSectionValues = {
@@ -45,7 +45,7 @@ const defaultSectionValues = {
   hydroshark_points_on_purchase: 0,
   discount_percentage: '',
   discounted_amount: '',
-  merchandise_category: '',
+  category: '',
   quantity: 0,
   in_stock: true,
 };
@@ -165,7 +165,7 @@ const CreateMerchandiseModal = () => {
           images: files,
           mrp: 0,
           selling_price: 0,
-          merchandise_category: parseInt(data.merchandise_category),
+          category: parseInt(data.category),
         },
       });
 
@@ -233,7 +233,7 @@ const CreateMerchandiseModal = () => {
                 <div className='grid grid-cols-2 gap-4'>
                   <div className='col-span-2'>
                     <label className={labelClass}>Merchandise Type</label>
-                    <select {...register('merchandise_category')} className={inputClass + ' w-full'}>
+                    <select {...register('category')} className={inputClass + ' w-full'}>
                       <option value=''>Select Type</option>
                       {merchandiseTypes.map((type) => (
                         <option key={type.id} value={type.id}>
@@ -241,7 +241,7 @@ const CreateMerchandiseModal = () => {
                         </option>
                       ))}
                     </select>
-                    {errors.merchandise_category && <span className='text-red-500'>Merchandise type is required</span>}
+                    {errors.category && <span className='text-red-500'>Merchandise type is required</span>}
                   </div>
 
                   <div>
