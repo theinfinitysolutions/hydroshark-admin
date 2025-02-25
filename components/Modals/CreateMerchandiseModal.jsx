@@ -103,6 +103,7 @@ const CreateMerchandiseModal = () => {
       });
       setProductSections(data.product_sections || []);
       setFiles(data.product_images || []);
+      setValue('category', data.category.id);
       setProduct(data);
     } catch (error) {
       console.error('Error fetching merchandise details:', error);
@@ -340,6 +341,7 @@ const CreateMerchandiseModal = () => {
                 setActiveTab={setActiveTab}
                 deleteSection={deleteSection}
                 linkedProduct={product}
+                getMerchandiseDetails={fetchMerchandiseDetails}
               />
             )}
 
@@ -352,6 +354,7 @@ const CreateMerchandiseModal = () => {
                 loading={loading}
                 mode={showCreateMerchandiseModal.mode}
                 product={product}
+                getMerchandiseDetails={fetchMerchandiseDetails}
               />
             )}
           </div>

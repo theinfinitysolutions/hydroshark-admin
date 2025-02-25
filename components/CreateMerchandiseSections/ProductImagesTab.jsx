@@ -7,7 +7,16 @@ import instance from '@/utils/instance';
 import Spinner from '@/components/Spinner';
 import useStore from '@/utils/store';
 
-const ProductImagesTab = ({ files, setFiles, setActiveTab, handleSubmit: onSubmit, initialLoading, mode, product }) => {
+const ProductImagesTab = ({
+  files,
+  setFiles,
+  setActiveTab,
+  handleSubmit: onSubmit,
+  initialLoading,
+  mode,
+  product,
+  getMerchandiseDetails,
+}) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const { setShowCreateMerchandiseModal, showCreateMerchandiseModal } = useStore();
@@ -48,6 +57,7 @@ const ProductImagesTab = ({ files, setFiles, setActiveTab, handleSubmit: onSubmi
           ...showCreateMerchandiseModal,
           refresh: !showCreateMerchandiseModal.refresh,
         });
+        getMerchandiseDetails(showCreateMerchandiseModal.id);
       })
       .catch((err) => {
         setLoading(false);
@@ -68,6 +78,7 @@ const ProductImagesTab = ({ files, setFiles, setActiveTab, handleSubmit: onSubmi
           ...showCreateMerchandiseModal,
           refresh: !showCreateMerchandiseModal.refresh,
         });
+        getMerchandiseDetails(showCreateMerchandiseModal.id);
       })
       .catch((err) => {
         console.log(err);
@@ -105,6 +116,7 @@ const ProductImagesTab = ({ files, setFiles, setActiveTab, handleSubmit: onSubmi
           ...showCreateMerchandiseModal,
           refresh: !showCreateMerchandiseModal.refresh,
         });
+        getMerchandiseDetails(showCreateMerchandiseModal.id);
       })
       .catch((err) => {
         setLoading(false);

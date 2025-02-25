@@ -8,6 +8,7 @@ import { BsBox } from 'react-icons/bs';
 import { MdEdit, MdSave } from 'react-icons/md';
 import instance from '@/utils/instance';
 import useStore from '@/utils/store';
+import Spinner from '../Spinner';
 
 const defaultSectionValues = {
   section_title: '',
@@ -25,7 +26,14 @@ const labelClass = 'text-black text-sm font-medium';
 const inputClass =
   'border border-black/20 rounded-lg p-2 text-black focus:outline-none focus:border-black transition-colors';
 
-const ProductSectionsTab = ({ productSections, setProductSections, setActiveTab, deleteSection, linkedProduct }) => {
+const ProductSectionsTab = ({
+  productSections,
+  setProductSections,
+  setActiveTab,
+  deleteSection,
+  linkedProduct,
+  getMerchandiseDetails,
+}) => {
   const [colors, setColors] = useState([]);
   const [newColor, setNewColor] = useState({ color_name: '', color_code: '#000000', in_stock: true });
   const [editingSection, setEditingSection] = useState(null);
@@ -97,6 +105,7 @@ const ProductSectionsTab = ({ productSections, setProductSections, setActiveTab,
         ...showCreateMerchandiseModal,
         refresh: !showCreateMerchandiseModal.refresh,
       });
+      getMerchandiseDetails(showCreateMerchandiseModal.id);
     } catch (error) {
       console.error('Error updating section:', error);
     }
@@ -107,6 +116,8 @@ const ProductSectionsTab = ({ productSections, setProductSections, setActiveTab,
       alert('Please add at least one color variant');
       return;
     }
+
+    setLoading(true);
 
     const discountedAmount = calculateDiscountedAmount(data.price, data.discount_percentage);
     const newSection = {
@@ -132,8 +143,11 @@ const ProductSectionsTab = ({ productSections, setProductSections, setActiveTab,
       setProductSections([...productSections, newSection]);
       setColors([]);
       reset(defaultSectionValues);
+      getMerchandiseDetails(showCreateMerchandiseModal.id);
+      setLoading(false);
     } catch (error) {
       console.error('Error adding section:', error);
+      setLoading(false);
     }
   };
 
@@ -455,7 +469,7 @@ const ProductSectionsTab = ({ productSections, setProductSections, setActiveTab,
                   <div key={color.id} className='flex items-center gap-2 bg-gray-50 px-3 py-1.5 rounded-lg border'>
                     <div
                       className='w-4 h-4 rounded-md border shadow-inner'
-                      style={{ backgroundColor: color.product_color.color_code }}
+                      style={{ backgroundColor: color?.product_color?.color_code }}
                     />
                     <span className='text-sm font-medium text-black'>{color?.product_color?.color_name}</span>
                   </div>
@@ -475,14 +489,23 @@ const ProductSectionsTab = ({ productSections, setProductSections, setActiveTab,
         >
           Back
         </button>
-        <button
-          type='button'
-          onClick={() => setActiveTab('productImages')}
-          className='px-6 py-2 bg-black text-white rounded-lg hover:bg-black/80 transition-colors'
-          disabled={productSections.length === 0}
-        >
-          Next
-        </button>
+        {loading ? (
+          <button
+            type='button'
+            className='px-4 py-2 bg-black text-white rounded-lg hover:bg-black/80 transition-colors'
+          >
+            <Spinner size={20} color='white' loading={loading} />
+          </button>
+        ) : (
+          <button
+            type='button'
+            onClick={() => setActiveTab('productImages')}
+            className='px-6 py-2 bg-black text-white rounded-lg hover:bg-black/80 transition-colors'
+            disabled={productSections.length === 0}
+          >
+            Next
+          </button>
+        )}
       </div>
     </div>
   );

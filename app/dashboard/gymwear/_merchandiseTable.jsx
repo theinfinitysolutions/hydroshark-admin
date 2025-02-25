@@ -8,7 +8,7 @@ import instance from '@/utils/instance';
 import ConfirmDeleteModal from '@/components/Modals/ConfirmDeleteModal';
 
 const MerchandiseDataTable = () => {
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [merchandise, setMerchandise] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [deleteMerchandiseModal, setDeleteMerchandiseModal] = useState({});
@@ -16,11 +16,14 @@ const MerchandiseDataTable = () => {
 
   const getMerchandise = async () => {
     try {
+      setLoading(true);
       const res = await instance.get('/merchandise/merchandise/');
       console.log('Merchandise data:', res.data);
       setMerchandise(res.data.results);
+      setLoading(false);
     } catch (error) {
       console.error('Error fetching merchandise:', error);
+      setLoading(false);
     }
   };
 
