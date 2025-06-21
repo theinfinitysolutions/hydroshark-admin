@@ -1,11 +1,11 @@
 'use client';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { FaRegCalendarAlt, FaFilter } from 'react-icons/fa';
 import AnalyticsChart from '@/components/Charts/AnalyticsChart';
 import instance from '@/utils/instance';
 import toast from 'react-hot-toast';
 
-const page = () => {
+const Dashboard = () => {
   const [analyticsData, setAnalyticsData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [filters, setFilters] = useState({
@@ -28,7 +28,7 @@ const page = () => {
     { value: 'drinks', label: 'Drinks' },
   ];
 
-  const fetchAnalytics = async () => {
+  const fetchAnalytics = useCallback(async () => {
     setLoading(true);
     try {
       const response = await instance({
@@ -51,11 +51,11 @@ const page = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [filters.start_date, filters.end_date, filters.aggregation]);
 
   useEffect(() => {
     fetchAnalytics();
-  }, [filters]);
+  }, [fetchAnalytics]);
 
   const handleFilterChange = (field, value) => {
     setFilters((prev) => ({
@@ -385,4 +385,4 @@ const page = () => {
   );
 };
 
-export default page;
+export default Dashboard;

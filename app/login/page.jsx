@@ -1,5 +1,5 @@
 'use client';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { FieldValues, set, useForm } from 'react-hook-form';
 import instance from '@/utils/instance';
 import { useRouter } from 'next/navigation';
@@ -49,7 +49,7 @@ const Login = () => {
       });
   };
 
-  const getUser = () => {
+  const getUser = useCallback(() => {
     instance
       .get('/accounts/user/')
       .then((res) => {
@@ -67,14 +67,14 @@ const Login = () => {
       .catch((err) => {
         console.log('err', err);
       });
-  };
+  }, [setUser, router]);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (token) {
       getUser();
     }
-  }, []);
+  }, [getUser]);
 
   const handleLogin = () => {
     setLoading(true);
@@ -111,7 +111,7 @@ const Login = () => {
   return (
     <div className=' flex flex-col items-center justify-center h-screen w-screen bg-white/80'>
       <div className=' h-screen w-screen absolute z-0'>
-        <Image src={process.env.NEXT_PUBLIC_API_URL + '/img9.webp'} fill objectFit='cover' />
+        <Image src={process.env.NEXT_PUBLIC_API_URL + '/img9.webp'} fill objectFit='cover' alt='Login background' />
       </div>
 
       <div className=' z-20 flex flex-col items-center justify-center w-6/12 h-[60vh] bg-white border-[0.5px] border-[#c7c7c7]/70 rounded-2xl shadow-xl'>

@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import useStore from '@/utils/store';
 import { IoMdClose } from 'react-icons/io';
 import { MdOutlineFileUpload } from 'react-icons/md';
@@ -21,7 +21,7 @@ const ViewOrderDetailsModal = () => {
   const [orderDetails, setOrderDetails] = useState({});
   const [shippingDetails, setShippingDetails] = useState({});
 
-  const getShippingDetails = (id) => {
+  const getShippingDetails = useCallback((id) => {
     setLoading(true);
     instance
       .get(`/billing/shipping/track/${id}/`)
@@ -34,9 +34,9 @@ const ViewOrderDetailsModal = () => {
         console.log('err', err);
         setLoading(false);
       });
-  };
+  }, []);
 
-  const getOrderDetials = (id) => {
+  const getOrderDetials = useCallback((id) => {
     setLoading(true);
     instance
       .get(`/admin/orders/${id}/`)
@@ -53,7 +53,7 @@ const ViewOrderDetailsModal = () => {
         console.log('err', err);
         setLoading(false);
       });
-  };
+  }, []);
 
   useEffect(() => {
     setIsOpen(showOrderDetailsModal.show);
@@ -200,6 +200,7 @@ const ViewOrderDetailsModal = () => {
                           src={item.product_section?.linked_product?.product_primary_image?.image?.cloudfront}
                           fill
                           objectFit='contain'
+                          alt={item.product_section?.linked_product?.product_title || 'Product image'}
                         />
                       </div>
                       <div className=' flex flex-col items-start'>
