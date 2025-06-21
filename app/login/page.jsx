@@ -14,7 +14,7 @@ const Login = () => {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [showOtp, setShowOtp] = useState(false);
+  const [showOtp, setShowOtp] = useState(true);
   const [otp, setOtp] = useState('');
   const { setUser, user } = useStore();
   const {
@@ -79,7 +79,7 @@ const Login = () => {
   const handleLogin = () => {
     setLoading(true);
     let obj = {
-      phone_number: getValues('phone'),
+      phone_number: '9398542806',
       otp: otp,
     };
 
