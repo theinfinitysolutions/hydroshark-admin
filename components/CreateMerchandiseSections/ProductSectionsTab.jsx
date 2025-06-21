@@ -132,7 +132,7 @@ const ProductSectionsTab = ({
     const method = mode === 'create' ? 'POST' : 'PATCH';
 
     try {
-      await instance({
+      const res = await instance({
         method,
         url,
         data: {
@@ -140,6 +140,7 @@ const ProductSectionsTab = ({
           linked_product: linkedProduct.id,
         },
       });
+      console.log('res', res);
       setProductSections([...productSections, newSection]);
       setColors([]);
       reset(defaultSectionValues);

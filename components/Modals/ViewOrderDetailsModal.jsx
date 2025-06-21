@@ -20,6 +20,20 @@ const ViewOrderDetailsModal = () => {
   const { showOrderDetailsModal, setShowOrderDetailsModal } = useStore();
   const [orderDetails, setOrderDetails] = useState({});
   const [shippingDetails, setShippingDetails] = useState({});
+  const [userDetails, setUserDetails] = useState({});
+
+  const getUserDetails = useCallback((userId) => {
+    instance
+      .get(`/accounts/user/${userId}/`)
+      .then((res) => {
+        console.log('User details:', res.data);
+        setUserDetails(res.data);
+      })
+      .catch((err) => {
+        console.error('Error fetching user details:', err);
+        setUserDetails({});
+      });
+  }, []);
 
   const getShippingDetails = useCallback((id) => {
     setLoading(true);
@@ -36,24 +50,33 @@ const ViewOrderDetailsModal = () => {
       });
   }, []);
 
-  const getOrderDetials = useCallback((id) => {
-    setLoading(true);
-    instance
-      .get(`/admin/orders/${id}/`)
-      .then((res) => {
-        setOrderDetails(res.data);
-        if (res.data.shipping?.id) {
-          getShippingDetails(id);
-        } else {
-          setShippingDetails({});
-        }
-        setLoading(false);
-      })
-      .catch((err) => {
-        console.log('err', err);
-        setLoading(false);
-      });
-  }, []);
+  const getOrderDetials = useCallback(
+    (id) => {
+      setLoading(true);
+      instance
+        .get(`/admin/orders/${id}/`)
+        .then((res) => {
+          setOrderDetails(res.data);
+
+          // Fetch user details if user ID is available
+          if (res.data.user) {
+            getUserDetails(res.data.user);
+          }
+
+          if (res.data.shipping?.id) {
+            getShippingDetails(id);
+          } else {
+            setShippingDetails({});
+          }
+          setLoading(false);
+        })
+        .catch((err) => {
+          console.log('err', err);
+          setLoading(false);
+        });
+    },
+    [getShippingDetails, getUserDetails]
+  );
 
   useEffect(() => {
     setIsOpen(showOrderDetailsModal.show);
@@ -66,6 +89,7 @@ const ViewOrderDetailsModal = () => {
     setShowOrderDetailsModal({ show: false, id: '' });
     setOrderDetails({});
     setShippingDetails({});
+    setUserDetails({});
     setIsOpen(false);
   };
 
@@ -100,6 +124,30 @@ const ViewOrderDetailsModal = () => {
                 <p className=' text-base text-black'>{orderDetails.order_total_amount}</p>
               </div>
             </div>
+
+            {/* User Details Section */}
+            {Object.keys(userDetails).length > 0 && (
+              <div className=' bg-gray-100  py-2 px-4 rounded-md flex mt-4 flex-col items-start w-full'>
+                <p className=' text-base text-black font-semibold'>Customer Details</p>
+                <div className=' w-full mt-4 rounded-md grid grid-cols-3 gap-4'>
+                  <div className='flex flex-col items-start'>
+                    <p className='text-xs text-black/70'>Customer Name</p>
+                    <p className='text-base text-black'>{userDetails.name || 'N/A'}</p>
+                  </div>
+
+                  <div className='flex flex-col items-start'>
+                    <p className='text-xs text-black/70'>Phone Number</p>
+                    <p className='text-base text-black'>{userDetails.phone_number || 'N/A'}</p>
+                  </div>
+
+                  <div className='flex flex-col items-start'>
+                    <p className='text-xs text-black/70'>Email Address</p>
+                    <p className='text-base text-black'>{userDetails.email || 'N/A'}</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
             <div className=' bg-gray-100  py-2 px-4 rounded-md flex mt-4 flex-col items-start w-full'>
               <p className=' text-base text-black font-semibold'>Payment Details</p>
               <div className=' w-full mt-4 rounded-md grid grid-cols-3'>

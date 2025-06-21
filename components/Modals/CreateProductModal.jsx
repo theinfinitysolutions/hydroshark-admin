@@ -101,6 +101,7 @@ const CreateProductModal = () => {
         setValue('productName', res.data.product_title);
         setValue('productDescription', res.data.product_description);
         setValue('hydroshark_points_accepted', res.data.hydroshark_points_accepted);
+        setValue('slug', res.data.slug);
       })
       .catch((err) => {
         console.log('err', err);

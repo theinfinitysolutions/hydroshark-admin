@@ -44,25 +44,46 @@ const ProductImagesTab = ({
     }
   };
 
-  const handlePrimaryImage = (id, value) => {
+  const handlePrimaryImage = async (id, value) => {
     setLoading(true);
-    instance
-      .patch(`/merchandise/merchandise-image/${id}/`, {
+
+    try {
+      if (value) {
+        // If setting this image as primary, first unset all other primary images
+        const unsetPromises = files
+          .filter((file) => file.is_primary && file.id !== id)
+          .map((file) =>
+            instance.patch(`/merchandise/merchandise-image/${file.id}/`, {
+              is_primary: false,
+            })
+          );
+
+        // Wait for all unset operations to complete
+        await Promise.all(unsetPromises);
+      }
+
+      // Now set/unset the selected image
+      const response = await instance.patch(`/merchandise/merchandise-image/${id}/`, {
         is_primary: value,
-      })
-      .then((res) => {
-        console.log('res', res);
-        setLoading(false);
-        setShowCreateMerchandiseModal({
-          ...showCreateMerchandiseModal,
-          refresh: !showCreateMerchandiseModal.refresh,
-        });
-        getMerchandiseDetails(showCreateMerchandiseModal.id);
-      })
-      .catch((err) => {
-        setLoading(false);
-        console.log('err', err);
       });
+
+      console.log('Primary image updated:', response);
+
+      // Refresh the merchandise details to get updated data
+      await getMerchandiseDetails(showCreateMerchandiseModal.id);
+
+      // Update the modal state to trigger refresh
+      setShowCreateMerchandiseModal({
+        ...showCreateMerchandiseModal,
+        refresh: !showCreateMerchandiseModal.refresh,
+      });
+
+      setLoading(false);
+    } catch (err) {
+      console.error('Error updating primary image:', err);
+      setError('Failed to update primary image. Please try again.');
+      setLoading(false);
+    }
   };
 
   const handleUpdateImages = async (imageId, productId) => {
@@ -173,13 +194,18 @@ const ProductImagesTab = ({
                 <div className='absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2'>
                   <button
                     type='button'
-                    onClick={() => handlePrimaryImage(file.id, !file.is_primary)}
+                    onClick={() => {
+                      // Only allow setting as primary if not already primary
+                      // If already primary, don't allow unsetting (must have one primary)
+                      if (!file.is_primary) {
+                        handlePrimaryImage(file.id, true);
+                      }
+                    }}
                     className={`p-2 rounded-full ${
-                      file.is_primary
-                        ? 'bg-yellow-400 text-black hover:bg-yellow-500'
-                        : 'bg-white/20 text-white hover:bg-white/30'
+                      file.is_primary ? 'bg-yellow-400 text-black' : 'bg-white/20 text-white hover:bg-white/30'
                     }`}
                     title={file.is_primary ? 'Primary Image' : 'Set as Primary'}
+                    disabled={loading}
                   >
                     {file.is_primary ? <MdStar className='text-xl' /> : <MdStarBorder className='text-xl' />}
                   </button>

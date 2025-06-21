@@ -87,24 +87,42 @@ const ProductImages = ({ productId, productImages }) => {
     multiple: false,
   });
 
-  const handlePrimaryImage = (id, value) => {
+  const handlePrimaryImage = async (id, value) => {
     setLoading(true);
-    instance
-      .patch(`/drinks/product-image/${id}/`, {
+
+    try {
+      if (value) {
+        // If setting this image as primary, first unset all other primary images
+        const unsetPromises = files
+          .filter((file) => file.is_primary && file.id !== id)
+          .map((file) =>
+            instance.patch(`/drinks/product-image/${file.id}/`, {
+              is_primary: false,
+            })
+          );
+
+        // Wait for all unset operations to complete
+        await Promise.all(unsetPromises);
+      }
+
+      // Now set/unset the selected image
+      const response = await instance.patch(`/drinks/product-image/${id}/`, {
         is_primary: value,
-      })
-      .then((res) => {
-        console.log('res', res);
-        setLoading(false);
-        setShowCreateProductModal({
-          ...showCreateProductModal,
-          refresh: !showCreateProductModal.refresh,
-        });
-      })
-      .catch((err) => {
-        setLoading(false);
-        console.log('err', err);
       });
+
+      console.log('Primary image updated:', response);
+
+      // Update the modal state to trigger refresh
+      setShowCreateProductModal({
+        ...showCreateProductModal,
+        refresh: !showCreateProductModal.refresh,
+      });
+
+      setLoading(false);
+    } catch (err) {
+      console.error('Error updating primary image:', err);
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -156,21 +174,27 @@ const ProductImages = ({ productId, productImages }) => {
               <div className='absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2'>
                 <button
                   type='button'
-                  onClick={() => handlePrimaryImage(file.id, !file.is_primary)}
+                  onClick={() => {
+                    // Only allow setting as primary if not already primary
+                    // If already primary, don't allow unsetting (must have one primary)
+                    if (!file.is_primary) {
+                      handlePrimaryImage(file.id, true);
+                    }
+                  }}
                   className={`p-2 rounded-full ${
-                    file.is_primary
-                      ? 'bg-yellow-400 text-black hover:bg-yellow-500'
-                      : 'bg-white/20 text-white hover:bg-white/30'
+                    file.is_primary ? 'bg-yellow-400 text-black' : 'bg-white/20 text-white hover:bg-white/30'
                   }`}
                   title={file.is_primary ? 'Primary Image' : 'Set as Primary'}
+                  disabled={loading}
                 >
                   {file.is_primary ? <MdStar className='text-xl' /> : <MdStarBorder className='text-xl' />}
                 </button>
                 <button
                   type='button'
-                  onClick={() => deleteMerchandiseImage(file.id)}
+                  onClick={() => deleteProductImage(file.id)}
                   className='bg-red-500/80 text-white p-2 rounded-full hover:bg-red-500'
                   title='Remove Image'
+                  disabled={loading}
                 >
                   <MdDelete className='text-xl' />
                 </button>
