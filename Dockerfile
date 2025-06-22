@@ -1,24 +1,53 @@
-# Use an official Node runtime as a parent image
-FROM node:18.17.0
+FROM node:18-alpine AS base
 
-# Set the working directory in the container
-WORKDIR /mnt/HydroShark/hydroshark-admin
+FROM base AS deps
 
-# Copy package.json and package-lock.json to the working directory
-COPY ./package*.json ./
+RUN apk add --no-cache libc6-compat
+WORKDIR /app
 
-# Install dependencies
-RUN npm install
-RUN npm ci
+COPY package.json ./
 
-# Copy the rest of the application code to the working directory
+RUN npm update && npm install
+
+# If you want yarn update and  install uncomment the bellow
+
+# RUN yarn install &&  yarn upgrade
+
+FROM base AS builder
+WORKDIR /app
+COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-#run build
+ARG NEXT_PUBLIC_API_URL
+ARG NEXT_PUBLIC_API
+ARG DEBUG
+
+# Export as environment variables
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+ENV NEXT_PUBLIC_API=$NEXT_PUBLIC_API
+ENV DEBUG=$DEBUG
+
 RUN npm run build
 
-#port
+FROM base AS runner
+WORKDIR /app
+
+ENV NODE_ENV production
+RUN addgroup --system --gid 1001 nodejs
+RUN adduser --system --uid 1001 nextjs
+
+COPY --from=builder /app/public ./public
+
+RUN mkdir .next
+RUN chown nextjs:nodejs .next
+
+COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+
+USER nextjs
+
 EXPOSE 3000
 
-# Run React App
-CMD ["npm","start"]
+ENV PORT 3000
+
+CMD ["node", "server.js"]
