@@ -2,7 +2,8 @@ import axios from 'axios';
 import toast from 'react-hot-toast';
 // const BASE_URL = "http://144.24.111.231:7020";
 // const BASE_URL = "https://api.hydroshark.in";
-const BASE_URL = process.env.NEXT_PUBLIC_API;
+// const BASE_URL = process.env.NEXT_PUBLIC_API;
+const BASE_URL = '/api';
 
 const instance = axios.create({
   baseURL: BASE_URL,
